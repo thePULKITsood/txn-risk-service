@@ -41,8 +41,11 @@ public class AmountThresholdRule implements Rule {
         return Optional.empty();
     }
 
-    /** Thresholds are inclusive: an amount exactly on the limit counts as reaching it. */
+    /**
+     * Thresholds are inclusive: an amount exactly on the limit counts as reaching it.
+     * Uses {@code compareTo}, not {@code equals}, so {@code 50000.00} matches a limit of {@code 50000}.
+     */
     private static boolean atOrAbove(BigDecimal amount, BigDecimal limit) {
-        return amount.compareTo(limit) > 0 || amount.equals(limit);
+        return amount.compareTo(limit) >= 0;
     }
 }

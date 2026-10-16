@@ -24,11 +24,15 @@ class AmountThresholdRuleTest {
     @ParameterizedTest(name = "{0} -> {1}")
     @CsvSource({
             "49999,  NONE",
+            "49999.99, NONE",
             "50000,  REVIEW",
+            "50000.0, REVIEW",
+            "50000.00, REVIEW",
             "50001,  REVIEW",
             "75000,  REVIEW",
             "199999, REVIEW",
             "200000, BLOCK",
+            "200000.00, BLOCK",
             "250000, BLOCK"
     })
     void thresholdsAreInclusive(String amount, String expected) {
