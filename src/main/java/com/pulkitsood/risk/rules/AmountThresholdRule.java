@@ -29,14 +29,23 @@ public class AmountThresholdRule implements Rule {
 
     @Override
     public Optional<RuleHit> evaluate(Transaction tx, Instant now) {
-        if (tx.amount().compareTo(blockAmount) > 0) {
+        BigDecimal amount = tx.amount();
+        if (atOrAbove(amount, blockAmount)) {
             return Optional.of(new RuleHit(id(), Decision.BLOCK,
-                    "amount " + tx.amount() + " is above block limit " + blockAmount));
+                    "amount " + amount + " is at or above block limit " + blockAmount));
         }
-        if (tx.amount().compareTo(reviewAmount) > 0) {
+        if (atOrAbove(amount, reviewAmount)) {
             return Optional.of(new RuleHit(id(), Decision.REVIEW,
-                    "amount " + tx.amount() + " is above review limit " + reviewAmount));
+                    "amount " + amount + " is at or above review limit " + reviewAmount));
         }
         return Optional.empty();
+    }
+
+    /**
+     * Thresholds are inclusive: an amount exactly on the limit counts as reaching it.
+     * Uses {@code compareTo}, not {@code equals}, so {@code 50000.00} matches a limit of {@code 50000}.
+     */
+    private static boolean atOrAbove(BigDecimal amount, BigDecimal limit) {
+        return amount.compareTo(limit) >= 0;
     }
 }
