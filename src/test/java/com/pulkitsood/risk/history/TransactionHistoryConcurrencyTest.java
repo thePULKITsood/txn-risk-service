@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -54,26 +55,40 @@ class TransactionHistoryConcurrencyTest {
     }
 
     @Test
-    void readsDoNotFailWhileWritesAreInFlight() throws Exception {
+    void readsStayWithinBoundsWhileWritesAreInFlight() throws Exception {
         TransactionHistory history = new TransactionHistory(Duration.ofDays(1));
+        int writers = THREADS / 2;
+        int maxCount = writers * WRITES_PER_THREAD;
+        AtomicInteger writersRunning = new AtomicInteger(writers);
+        AtomicInteger readsDuringWrites = new AtomicInteger();
 
         runConcurrently(thread -> {
-            for (int i = 0; i < WRITES_PER_THREAD; i++) {
-                if (thread % 2 == 0) {
+            if (thread < writers) {
+                for (int i = 0; i < WRITES_PER_THREAD; i++) {
                     history.record("card-rw", T0.plusMillis(i));
-                } else {
-                    assertThat(history.countSince("card-rw", T0)).isBetween(0, THREADS * WRITES_PER_THREAD);
+                }
+                writersRunning.decrementAndGet();
+            } else {
+                // Keep reading until every writer has finished, so reads genuinely overlap writes.
+                while (writersRunning.get() > 0) {
+                    assertThat(history.countSince("card-rw", T0)).isBetween(0, maxCount);
+                    readsDuringWrites.incrementAndGet();
                 }
             }
         });
 
-        assertThat(history.countSince("card-rw", T0)).isEqualTo((THREADS / 2) * WRITES_PER_THREAD);
+        assertThat(readsDuringWrites.get()).isPositive();
+        assertThat(history.countSince("card-rw", T0)).isEqualTo(maxCount);
     }
 
-    /** Starts all workers together and rethrows the first failure from any of them. */
+    /**
+     * Starts all workers together and rethrows the first failure from any of them. Stuck workers
+     * are interrupted with {@code shutdownNow()} so a deadlock fails the test instead of hanging the build.
+     */
     private static void runConcurrently(Worker worker) throws Exception {
         CountDownLatch start = new CountDownLatch(1);
-        try (ExecutorService pool = Executors.newFixedThreadPool(THREADS)) {
+        ExecutorService pool = Executors.newFixedThreadPool(THREADS);
+        try {
             List<Future<?>> futures = new ArrayList<>();
             for (int t = 0; t < THREADS; t++) {
                 int thread = t;
@@ -87,6 +102,8 @@ class TransactionHistoryConcurrencyTest {
             for (Future<?> future : futures) {
                 future.get(10, TimeUnit.SECONDS);
             }
+        } finally {
+            pool.shutdownNow();
         }
     }
 
