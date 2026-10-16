@@ -64,13 +64,17 @@ class TransactionHistoryConcurrencyTest {
 
         runConcurrently(thread -> {
             if (thread < writers) {
-                for (int i = 0; i < WRITES_PER_THREAD; i++) {
-                    history.record("card-rw", T0.plusMillis(i));
+                try {
+                    for (int i = 0; i < WRITES_PER_THREAD; i++) {
+                        history.record("card-rw", T0.plusMillis(i));
+                    }
+                } finally {
+                    writersRunning.decrementAndGet();
                 }
-                writersRunning.decrementAndGet();
             } else {
                 // Keep reading until every writer has finished, so reads genuinely overlap writes.
-                while (writersRunning.get() > 0) {
+                // Also stop on interrupt, so shutdownNow() can end a reader if the test times out.
+                while (writersRunning.get() > 0 && !Thread.currentThread().isInterrupted()) {
                     assertThat(history.countSince("card-rw", T0)).isBetween(0, maxCount);
                     readsDuringWrites.incrementAndGet();
                 }
