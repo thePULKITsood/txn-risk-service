@@ -22,7 +22,7 @@ class RiskApiTest {
 
     @Test
     void checkReturnsDecision() throws Exception {
-        mvc.perform(post("/v1/risk/check").header("X-Client-Id", "api-test").contentType(MediaType.APPLICATION_JSON).content("""
+        mvc.perform(post("/v1/risk/check").contentType(MediaType.APPLICATION_JSON).content("""
                         {"transactionId":"t-1","clientId":"client-1","cardId":"card-api-1",
                          "merchantId":"m-sketchy-001","amount":120.00,"country":"IN"}
                         """))
@@ -34,7 +34,7 @@ class RiskApiTest {
 
     @Test
     void invalidTransactionIsRejected() throws Exception {
-        mvc.perform(post("/v1/risk/check").header("X-Client-Id", "api-test").contentType(MediaType.APPLICATION_JSON).content("""
+        mvc.perform(post("/v1/risk/check").contentType(MediaType.APPLICATION_JSON).content("""
                         {"transactionId":"t-2","clientId":"client-1","cardId":"card-api-2",
                          "merchantId":"m-1","amount":-5,"country":"IND"}
                         """))
@@ -44,7 +44,7 @@ class RiskApiTest {
 
     @Test
     void malformedJsonIsRejected() throws Exception {
-        mvc.perform(post("/v1/risk/check").header("X-Client-Id", "api-test").contentType(MediaType.APPLICATION_JSON).content("{nope"))
+        mvc.perform(post("/v1/risk/check").contentType(MediaType.APPLICATION_JSON).content("{nope"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Malformed JSON body"));
     }

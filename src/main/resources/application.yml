@@ -16,10 +16,3 @@ risk:
   blocked-countries:
     - KP
     - IR
-
-rate-limit:
-  enabled: true
-  # Each client (X-Client-Id) may burst up to `capacity` requests,
-  # then is held to `refill-per-second` sustained.
-  capacity: 20
-  refill-per-second: 10
