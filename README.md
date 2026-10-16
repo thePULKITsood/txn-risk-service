@@ -14,7 +14,7 @@ Built with Java 21 and Spring Boot 3.
 | `PUT` | `/v1/admin/rules` | Replace rule settings at runtime |
 
 ```bash
-curl -s localhost:8080/v1/risk/check -H 'Content-Type: application/json' -d '{
+curl -s localhost:8080/v1/risk/check -H 'Content-Type: application/json' -H "X-Client-Id: acme-pay" -d '{
   "transactionId": "t-1001", "clientId": "acme-pay", "cardId": "tok_4f9a",
   "merchantId": "m-grocer-17", "amount": 64000, "country": "IN"
 }'
@@ -30,6 +30,12 @@ curl -s localhost:8080/v1/risk/check -H 'Content-Type: application/json' -d '{
 ```
 
 Invalid input returns `400` with an RFC 7807 problem body listing each field error.
+
+### Rate limiting
+
+Calls to `/v1/risk/**` must send an `X-Client-Id` header (missing → `400`). Each client gets a token bucket
+(`rate-limit.capacity` burst, `rate-limit.refill-per-second` sustained). Over the limit the API returns `429` with a
+`Retry-After` header.
 
 ## Rules
 
