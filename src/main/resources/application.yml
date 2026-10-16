@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+risk:
+  # Amounts are in minor-unit-free decimal INR. Thresholds are inclusive:
+  # an amount equal to review-amount is sent to REVIEW.
+  review-amount: 50000
+  block-amount: 200000
+  # A card may make at most velocity-max-transactions inside velocity-window;
+  # the next one inside the same window is sent to REVIEW.
+  velocity-max-transactions: 5
+  velocity-window: 10m
+  blocked-merchants:
+    - m-sketchy-001
+    - m-sketchy-002
+  blocked-countries:
+    - KP
+    - IR
